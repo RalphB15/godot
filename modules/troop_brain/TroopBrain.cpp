@@ -8,11 +8,22 @@ void TroopBrain::_bind_methods() {
     ClassDB::bind_method(D_METHOD("update_target"), &TroopBrain::update_target);
     ClassDB::bind_method(D_METHOD("update", "delta"), &TroopBrain::update);
     ClassDB::bind_method(D_METHOD("get_first_wall_on_path", "ignore_path"), &TroopBrain::get_first_wall_on_path);
+    ClassDB::bind_method(D_METHOD("move", "delta"), &TroopBrain::move); // Newly added binding
+    
     ClassDB::bind_method(D_METHOD("set_detection_range", "range"), &TroopBrain::set_detection_range);
     ClassDB::bind_method(D_METHOD("set_attack_range", "range"), &TroopBrain::set_attack_range);
     ClassDB::bind_method(D_METHOD("set_speed", "speed"), &TroopBrain::set_speed);
     ClassDB::bind_method(D_METHOD("set_max_building_path_length", "length"), &TroopBrain::set_max_building_path_length);
     ClassDB::bind_method(D_METHOD("set_max_detour", "detour"), &TroopBrain::set_max_detour);
+
+    // Optionally bind getters if needed in scripts
+    ClassDB::bind_method(D_METHOD("get_detection_range"), &TroopBrain::get_detection_range);
+    ClassDB::bind_method(D_METHOD("get_attack_range"), &TroopBrain::get_attack_range);
+    ClassDB::bind_method(D_METHOD("get_speed"), &TroopBrain::get_speed);
+    ClassDB::bind_method(D_METHOD("get_max_building_path_length"), &TroopBrain::get_max_building_path_length);
+    ClassDB::bind_method(D_METHOD("get_max_detour"), &TroopBrain::get_max_detour);
+    ClassDB::bind_method(D_METHOD("get_attack_target_point"), &TroopBrain::get_attack_target_point);
+    ClassDB::bind_method(D_METHOD("get_attack_target"), &TroopBrain::get_attack_target);
 }
 
 TroopBrain::TroopBrain() {
@@ -27,10 +38,14 @@ void TroopBrain::initialize(Node2D *p_troop_unit, GridManager *p_grid_manager) {
 }
 
 void TroopBrain::update_target() {
-    if (!grid_manager || !troop_unit)
+    if (!grid_manager || !troop_unit) {
+        print_line("update_target: grid_manager oder troop_unit nicht gesetzt.");
         return;
+    }
         
     Dictionary occupancy = grid_manager->get_grid_occupancy();
+    print_line(vformat("update_target: occupancy keys count: %d", occupancy.keys().size()));
+    
     float best_dist = detection_range;
     attack_target = nullptr;
     attack_target_point = Vector2();
@@ -41,19 +56,24 @@ void TroopBrain::update_target() {
         Vector2 cell = keys[i];
         Dictionary obj = occupancy[cell];
         bool is_wall = obj.has("is_wall") ? bool(obj["is_wall"]) : false;
+        print_line(vformat("update_target: cell: (%f, %f) is_wall: %s", cell.x, cell.y, is_wall ? "true" : "false"));
         if (!is_wall) {
             Vector2 cell_center = grid_manager->grid_to_screen(cell + Vector2(0.5, 0.5));
             float d = troop_unit->get_global_position().distance_to(cell_center);
-            if (d < best_dist) {
+            // Nur setzen, wenn der "obj"-Wert gültig ist:
+            Node2D *potential_target = Object::cast_to<Node2D>(obj["obj"]);
+            if (potential_target && d < best_dist) {
                 best_dist = d;
                 attack_target_point = cell_center;
-                attack_target = Object::cast_to<Node2D>(obj["obj"]);
+                attack_target = potential_target;
+                print_line("update_target: Found non-wall target.");
             }
         }
     }
     
-    // Falls kein Gebäude-Ziel gefunden wurde, suche nach einem Wand-Ziel.
+    // Falls kein gültiges Gebäude-Ziel gefunden wurde, suche nach einem Wand-Ziel.
     if (!attack_target) {
+        print_line("update_target: Kein Building-Ziel gefunden, suche Wand-Ziel.");
         for (int i = 0; i < keys.size(); i++) {
             Vector2 cell = keys[i];
             Dictionary obj = occupancy[cell];
@@ -61,10 +81,12 @@ void TroopBrain::update_target() {
             if (is_wall) {
                 Vector2 cell_center = grid_manager->grid_to_screen(cell + Vector2(0.5, 0.5));
                 float d = troop_unit->get_global_position().distance_to(cell_center);
-                if (d < best_dist) {
+                Node2D *potential_target = Object::cast_to<Node2D>(obj["obj"]);
+                if (potential_target && d < best_dist) {
                     best_dist = d;
                     attack_target_point = cell_center;
-                    attack_target = Object::cast_to<Node2D>(obj["obj"]);
+                    attack_target = potential_target;
+                    print_line("update_target: Found wall target.");
                 }
             }
         }

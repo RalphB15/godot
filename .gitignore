@@ -102,6 +102,7 @@ platform/web/node_modules/
 
 # Misc
 *.debug
+*.code-workspace
 
 #############################
 ### IDE and tool specific ###
