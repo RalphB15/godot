@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+
+Import("env")
+Import("env_modules")
+
+# Klone die env_modules-Umgebung für dein Modul
+env_troop_brain = env_modules.Clone()
+
+# Objektliste für Quellen im Modul
+module_obj = []
+
+# Alle .cpp-Dateien im Modul einbinden
+env_troop_brain.add_source_files(module_obj, "*.cpp")
+
+# Die Modulquellen zu den globalen Modulquellen hinzufügen
+env.modules_sources += module_obj

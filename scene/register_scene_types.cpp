@@ -229,6 +229,7 @@
 #include "scene/resources/2d/skeleton/skeleton_modification_stack_2d.h"
 #include "scene/resources/2d/tile_set.h"
 #include "scene/resources/2d/world_boundary_shape_2d.h"
+#include "scene/2d/grid_manager_2d.h"
 
 #ifndef _3D_DISABLED
 #include "scene/3d/audio_listener_3d.h"
@@ -827,6 +828,9 @@ void register_scene_types() {
 	GDREGISTER_CLASS(LightOccluder2D);
 	GDREGISTER_CLASS(OccluderPolygon2D);
 	GDREGISTER_CLASS(BackBufferCopy);
+
+	// Benutzerdefinierten Node:
+    GDREGISTER_CLASS(GridManager);
 
 	OS::get_singleton()->yield(); // may take time to init
 
