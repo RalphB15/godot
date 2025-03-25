@@ -39,12 +39,12 @@ void TroopBrain::initialize(Node2D *p_troop_unit, GridManager *p_grid_manager) {
 
 void TroopBrain::update_target() {
     if (!grid_manager || !troop_unit) {
-        print_line("update_target: grid_manager oder troop_unit nicht gesetzt.");
+        //print_line("update_target: grid_manager oder troop_unit nicht gesetzt.");
         return;
     }
         
     Dictionary occupancy = grid_manager->get_grid_occupancy();
-    print_line(vformat("update_target: occupancy keys count: %d", occupancy.keys().size()));
+    //print_line(vformat("update_target: occupancy keys count: %d", occupancy.keys().size()));
     
     float best_dist = detection_range;
     attack_target = nullptr;
@@ -56,7 +56,7 @@ void TroopBrain::update_target() {
         Vector2 cell = keys[i];
         Dictionary obj = occupancy[cell];
         bool is_wall = obj.has("is_wall") ? bool(obj["is_wall"]) : false;
-        print_line(vformat("update_target: cell: (%f, %f) is_wall: %s", cell.x, cell.y, is_wall ? "true" : "false"));
+        //print_line(vformat("update_target: cell: (%f, %f) is_wall: %s", cell.x, cell.y, is_wall ? "true" : "false"));
         if (!is_wall) {
             Vector2 cell_center = grid_manager->grid_to_screen(cell + Vector2(0.5, 0.5));
             float d = troop_unit->get_global_position().distance_to(cell_center);
@@ -66,14 +66,14 @@ void TroopBrain::update_target() {
                 best_dist = d;
                 attack_target_point = cell_center;
                 attack_target = potential_target;
-                print_line("update_target: Found non-wall target.");
+                //print_line("update_target: Found non-wall target.");
             }
         }
     }
     
     // Falls kein gültiges Gebäude-Ziel gefunden wurde, suche nach einem Wand-Ziel.
     if (!attack_target) {
-        print_line("update_target: Kein Building-Ziel gefunden, suche Wand-Ziel.");
+        //print_line("update_target: Kein Building-Ziel gefunden, suche Wand-Ziel.");
         for (int i = 0; i < keys.size(); i++) {
             Vector2 cell = keys[i];
             Dictionary obj = occupancy[cell];
@@ -86,7 +86,7 @@ void TroopBrain::update_target() {
                     best_dist = d;
                     attack_target_point = cell_center;
                     attack_target = potential_target;
-                    print_line("update_target: Found wall target.");
+                    //print_line("update_target: Found wall target.");
                 }
             }
         }
@@ -99,17 +99,17 @@ void TroopBrain::move(float delta) {
 
     // Falls noch kein Pfad berechnet oder abgelaufen: Pfad neu ermitteln
     if (path.size() == 0 || path_index >= path.size()) {
-        print_line("Berechne neuen Pfad");
+        //print_line("Berechne neuen Pfad");
         Array avoid_path = grid_manager->get_simple_path_iso_avoid_walls_smoothed(
             troop_unit->get_global_position(), attack_target_point);
         // Falls der Umwegs-Pfad zu lang ist, ignore-Pfad betrachten:
         if (avoid_path.size() > max_building_path_length) {
-            print_line("Umweg zu lang, ignoriere Wände");
+            //print_line("Umweg zu lang, ignoriere Wände");
             Array ignore_path = grid_manager->get_simple_path_iso_ignore_walls(
                 troop_unit->get_global_position(), attack_target_point);
             Node2D *wall_target = get_first_wall_on_path(ignore_path);
             if (wall_target) {
-                print_line("Wand gefunden");
+                //print_line("Wand gefunden");
                 attack_target = wall_target;
                 attack_target_point = wall_target->get_global_position();
                 avoid_path = grid_manager->get_simple_path_iso_avoid_walls_smoothed(

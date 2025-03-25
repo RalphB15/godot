@@ -52,6 +52,10 @@ public:
     void api_enable_build_mode();
     void api_enable_move_mode(Dictionary state);
     void api_disable_modes();
+    bool api_get_build_mode() const;
+    bool api_get_move_mode() const;
+    Node2D* api_get_selection() const;
+    void api_set_selection(Node2D* building_instance);
  
     // Utility-Funktionen
     Vector2 grid_to_screen(Vector2 grid_pos) const;

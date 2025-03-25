@@ -46,6 +46,10 @@ void GridManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("api_enable_build_mode"), &GridManager::api_enable_build_mode);
     ClassDB::bind_method(D_METHOD("api_enable_move_mode", "state"), &GridManager::api_enable_move_mode);
     ClassDB::bind_method(D_METHOD("api_disable_modes"), &GridManager::api_disable_modes);
+    ClassDB::bind_method(D_METHOD("api_get_build_mode"), &GridManager::api_get_build_mode);
+    ClassDB::bind_method(D_METHOD("api_get_move_mode"), &GridManager::api_get_move_mode);
+    ClassDB::bind_method(D_METHOD("api_get_selection"), &GridManager::api_get_selection);
+    ClassDB::bind_method(D_METHOD("api_set_selection", "building_instance"), &GridManager::api_set_selection);
 
     // Intern verwendete Funktionen binden
     ClassDB::bind_method(D_METHOD("can_place_building", "top_left_cell", "building_size"), &GridManager::can_place_building);
@@ -147,6 +151,22 @@ void GridManager::api_disable_modes() {
     print_line("Alle Modi deaktiviert.");
 }
 
+bool GridManager::api_get_build_mode() const {
+    return build_mode;
+}
+
+bool GridManager::api_get_move_mode() const {
+    return move_mode;
+}
+
+Node2D* GridManager::api_get_selection() const {
+    return Object::cast_to<Node2D>(selection);
+}
+
+void GridManager::api_set_selection(Node2D* building_instance) {
+    selection = building_instance;
+}
+
 // Utility-Funktionen
 Vector2 GridManager::grid_to_screen(Vector2 grid_pos) const {
     return Vector2((grid_pos.x - grid_pos.y) * (cell_size.x / 2),
@@ -188,10 +208,14 @@ bool GridManager::place_building(Vector2 top_left_cell, Ref<PackedScene> buildin
         building_instance->set_position(building_center);
         building_instance->set_z_index(0);
         add_child(building_instance);
+        // Hier wird für jede Zelle ein Dictionary gespeichert statt nur der Instanz
         for (int x = 0; x < building_size; x++) {
             for (int y = 0; y < building_size; y++) {
                 Vector2 cell = top_left_cell + Vector2(x, y);
-                grid_occupancy[cell] = building_instance;
+                Dictionary cell_info;
+                cell_info["obj"] = building_instance;
+                cell_info["is_wall"] = false;
+                grid_occupancy[cell] = cell_info;
             }
         }
         update_z_index();
@@ -205,8 +229,9 @@ bool GridManager::move_building(Node2D* building_instance, Vector2 new_top_left_
         return false;
     }
     Array keys_to_remove;
-    for (const Variant& key : grid_occupancy.keys()) {
-        if (Object::cast_to<Node2D>(grid_occupancy[key]) == building_instance) {
+    for (const Variant &key : grid_occupancy.keys()) {
+        Dictionary cell_info = grid_occupancy[key];
+        if (cell_info.has("obj") && Object::cast_to<Node2D>(cell_info["obj"]) == building_instance) {
             keys_to_remove.append(key);
         }
     }
@@ -220,7 +245,10 @@ bool GridManager::move_building(Node2D* building_instance, Vector2 new_top_left_
     for (int x = 0; x < building_size; x++) {
         for (int y = 0; y < building_size; y++) {
             Vector2 cell = new_top_left_cell + Vector2(x, y);
-            grid_occupancy[cell] = building_instance;
+            Dictionary cell_info;
+            cell_info["obj"] = building_instance;
+            cell_info["is_wall"] = false;
+            grid_occupancy[cell] = cell_info;
         }
     }
     update_z_index();
@@ -436,8 +464,9 @@ Array GridManager::get_simple_path_iso_avoid_walls(Vector2 start_pos, Vector2 en
             }
             // Prüfen, ob eine Wand im Weg ist
             if (grid_occupancy.has(next)) {
-                Node2D* occupant = Object::cast_to<Node2D>(grid_occupancy[next]);
-                if (occupant && occupant->has_method("is_wall") && occupant->call("is_wall")) {
+                Dictionary occ = grid_occupancy[next];
+                bool is_wall = occ.has("is_wall") ? bool(occ["is_wall"]) : false;
+                if (is_wall) {
                     continue;
                 }
             }
@@ -564,8 +593,10 @@ Array GridManager::get_simple_path_through_wall(Vector2 start_pos, Vector2 end_p
             grid_pt.x = floor(grid_pt.x);
             grid_pt.y = floor(grid_pt.y);
             if (grid_occupancy.has(grid_pt)) {
-                // Sobald ein Hindernis gefunden wurde, abbrechen
-                break;
+                Dictionary occ = grid_occupancy[grid_pt];
+                if (occ.has("obj")) { // Hindernis gefunden
+                    break;
+                }
             }
             partial.append(screen_point);
         }
@@ -690,8 +721,10 @@ Array GridManager::get_natural_path_through_wall(Vector2 start_pos, Vector2 end_
             grid_pt.x = floor(grid_pt.x);
             grid_pt.y = floor(grid_pt.y);
             if (grid_occupancy.has(grid_pt)) {
-                // Hindernis gefunden – Abbruch des Pfades
-                break;
+                Dictionary occ = grid_occupancy[grid_pt];
+                if (occ.has("obj")) { // Hindernis gefunden – Pfad abbrechen
+                    break;
+                }
             }
             partial.append(screen_point);
         }
