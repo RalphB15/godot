@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<class name="GridManager" inherits="Node2D" keywords="grid, building, pathfinding">
+  <brief_description>
+    A node that manages grid-based operations such as building placement, movement, occupancy management and pathfinding.
+  </brief_description>
+  <description>
+    The GridManager provides an interface for grid-related functionality in 2D games. It handles placing and moving building instances, spawning troops, and keeping track of grid occupancy. 
+    Additionally, it offers several pathfinding methods that compute simple or smooth paths between points on the grid. API methods exposed from C++ allow GDScript to utilize these functions directly.
+  </description>
+  <methods>
+    <method name="api_place_building">
+      <return type="bool"/>
+      <param index="0" name="top_left_cell" type="Vector2"/>
+      <param index="1" name="building_scene" type="PackedScene"/>
+      <param index="2" name="building_size" type="int"/>
+      <description>
+        Attempts to place a building at the given top-left grid cell using the provided building scene and size.
+      </description>
+    </method>
+    <method name="api_move_building">
+      <return type="bool"/>
+      <param index="0" name="building_instance" type="Node2D"/>
+      <param index="1" name="new_top_left_cell" type="Vector2"/>
+      <param index="2" name="building_size" type="int"/>
+      <description>
+        Moves an existing building instance to a new position in the grid, updating occupancy, z-index and automatically determining if the instance represents a wall based on its stored occupancy data.
+      </description>
+    </method>
+    <method name="api_spawn_troop">
+      <return type="bool"/>
+      <param index="0" name="screen_pos" type="Vector2"/>
+      <param index="1" name="troop_scene" type="PackedScene"/>
+      <description>
+        Spawns a troop at the specified screen position if the underlying grid cell is available.
+      </description>
+    </method>
+    <method name="api_enable_build_mode">
+      <description>
+        Enables the build mode for grid operations.
+      </description>
+    </method>
+    <method name="api_enable_move_mode">
+      <param index="0" name="p_last_active_state" type="Dictionary"/>
+      <description>
+        Enables the move mode for grid operations with the specified state.
+      </description>
+    </method>
+    <method name="api_disable_modes">
+      <description>
+        Disables any active modes (build and move) in the grid system.
+      </description>
+    </method>
+    <method name="api_get_build_mode">
+      <return type="bool"/>
+      <description>
+        Returns whether the build mode is currently active.
+      </description>
+    </method>
+    <method name="api_get_move_mode">
+      <return type="bool"/>
+      <description>
+        Returns whether the move mode is currently active.
+      </description>
+    </method>
+    <method name="grid_to_screen">
+      <return type="Vector2"/>
+      <param index="0" name="grid_pos" type="Vector2"/>
+      <description>
+        Converts grid coordinates to screen coordinates based on the cell size.
+      </description>
+    </method>
+    <method name="screen_to_grid">
+      <return type="Vector2"/>
+      <param index="0" name="screen_pos" type="Vector2"/>
+      <description>
+        Converts a screen coordinate to its corresponding grid coordinate.
+      </description>
+    </method>
+    <method name="get_simple_path">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <description>
+        Computes a simple path between two positions on the grid.
+      </description>
+    </method>
+    <method name="get_simple_path_iso_avoid_walls">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <description>
+        Calculates an isometric path that avoids walls.
+      </description>
+    </method>
+    <method name="get_simple_path_iso_ignore_walls">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <description>
+        Computes an isometric path ignoring walls (useful as a fallback).
+      </description>
+    </method>
+    <method name="smooth_path">
+      <return type="Array"/>
+      <param index="0" name="path" type="Array"/>
+      <param index="1" name="segments" type="int" default="10"/>
+      <description>
+        Smooths a given path by inserting additional intermediate points.
+      </description>
+    </method>
+    <method name="get_simple_path_iso_avoid_walls_smoothed">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <description>
+        Returns a smoothed isometric path that avoids walls.
+      </description>
+    </method>
+    <method name="get_direct_path">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <param index="2" name="segments" type="int" default="10"/>
+      <description>
+        Computes a direct path from start to end by dividing the distance into segments.
+      </description>
+    </method>
+    <method name="get_simple_path_through_wall">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <param index="2" name="max_detour" type="int"/>
+      <description>
+        Attempts to compute a path through walls, limiting the detour to a maximum value.
+      </description>
+    </method>
+    <method name="get_natural_path_through_wall">
+      <return type="Array"/>
+      <param index="0" name="start_pos" type="Vector2"/>
+      <param index="1" name="end_pos" type="Vector2"/>
+      <description>
+        Generates a natural path through obstacles if possible.
+      </description>
+    </method>
+    <method name="update_z_index">
+      <description>
+        Updates the z-index of grid objects based on their screen position to ensure correct drawing order.
+      </description>
+    </method>
+    <method name="toggle_modes">
+      <param index="0" name="p_last_active_state" type="Dictionary"/>
+      <description>
+        Toggles between the build and move modes using the provided last active state.
+      </description>
+    </method>
+    <method name="get_grid_occupancy">
+      <return type="Dictionary"/>
+      <description>
+        Returns the dictionary that represents the current state of grid occupancy.
+      </description>
+    </method>
+    <method name="set_cell_size">
+      <param index="0" name="size" type="Vector2"/>
+      <description>
+        Sets the size of each grid cell.
+      </description>
+    </method>
+    <method name="get_cell_size">
+      <return type="Vector2"/>
+      <description>
+        Returns the current cell size of the grid.
+      </description>
+    </method>
+    <method name="set_grid_size">
+      <param index="0" name="size" type="int"/>
+      <description>
+        Sets the overall grid size (number of cells per dimension).
+      </description>
+    </method>
+    <method name="get_grid_size">
+      <return type="int"/>
+      <description>
+        Returns the overall grid size.
+      </description>
+    </method>
+    <method name="set_min_z_index">
+      <param index="0" name="index" type="int"/>
+      <description>
+        Sets the minimum z-index value used for grid objects.
+      </description>
+    </method>
+    <method name="get_min_z_index">
+      <return type="int"/>
+      <description>
+        Returns the minimum z-index value.
+      </description>
+    </method>
+    <method name="set_max_z_index">
+      <param index="0" name="index" type="int"/>
+      <description>
+        Sets the maximum z-index value used for grid objects.
+      </description>
+    </method>
+    <method name="get_max_z_index">
+      <return type="int"/>
+      <description>
+        Returns the maximum z-index value.
+      </description>
+    </method>
+    <method name="set_grid_lines">
+      <param index="0" name="enable" type="bool"/>
+      <description>
+        Enables or disables the drawing of grid lines.
+      </description>
+    </method>
+    <method name="get_grid_lines">
+      <return type="bool"/>
+      <description>
+        Returns true if grid lines are enabled.
+      </description>
+    </method>
+    <method name="set_show_occupied">
+      <param index="0" name="enable" type="bool"/>
+      <description>
+        Enables or disables the visual highlighting of occupied grid cells.
+      </description>
+    </method>
+    <method name="get_show_occupied">
+      <return type="bool"/>
+      <description>
+        Returns true if occupied grid cells are set to be shown.
+      </description>
+    </method>
+  </methods>
+  <members>
+    <member name="cell_size" type="Vector2" setter="set_cell_size" getter="get_cell_size">
+      The size of each cell in the grid.
+    </member>
+    <member name="grid_size" type="int" setter="set_grid_size" getter="get_grid_size">
+      The number of cells per dimension of the grid.
+    </member>
+    <member name="min_z_index" type="int" setter="set_min_z_index" getter="get_min_z_index">
+      The minimum z-index value used for grid objects.
+    </member>
+    <member name="max_z_index" type="int" setter="set_max_z_index" getter="get_max_z_index">
+      The maximum z-index value used for grid objects.
+    </member>
+    <member name="grid_lines" type="bool" setter="set_grid_lines" getter="get_grid_lines">
+      If true, grid lines will be drawn.
+    </member>
+    <member name="show_occupied" type="bool" setter="set_show_occupied" getter="get_show_occupied">
+      If true, occupied grid cells will be visually highlighted.
+    </member>
+    <member name="grid_occupancy" type="Dictionary">
+      A dictionary holding the occupancy status of grid cells.
+    </member>
+  </members>
+  <signals>
+    <!-- GridManager does not define custom signals. -->
+  </signals>
+  <constants>
+    <!-- No constants are defined for GridManager. -->
+  </constants>
+</class>

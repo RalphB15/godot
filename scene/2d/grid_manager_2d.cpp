@@ -213,9 +213,11 @@ bool GridManager::place_building(Vector2 top_left_cell, Ref<PackedScene> buildin
             for (int y = 0; y < building_size; y++) {
                 Vector2 cell = top_left_cell + Vector2(x, y);
                 Dictionary cell_info;
-                cell_info["obj"] = building_instance;
-                cell_info["is_wall"] = false;
-                grid_occupancy[cell] = cell_info;
+                cell_info["obj"]       = building_instance;
+                cell_info["is_wall"]   = false;
+                cell_info["destroyed"] = false;
+                cell_info["position_in_grid"] = Vector2(x, y);
+                grid_occupancy[cell]   = cell_info;
             }
         }
         update_z_index();
@@ -224,7 +226,7 @@ bool GridManager::place_building(Vector2 top_left_cell, Ref<PackedScene> buildin
     return false;
 }
 
-bool GridManager::move_building(Node2D* building_instance, Vector2 new_top_left_cell, int building_size) {
+/*bool GridManager::move_building(Node2D* building_instance, Vector2 new_top_left_cell, int building_size) {
     if (!can_place_building(new_top_left_cell, building_size)) {
         return false;
     }
@@ -248,11 +250,56 @@ bool GridManager::move_building(Node2D* building_instance, Vector2 new_top_left_
             Dictionary cell_info;
             cell_info["obj"] = building_instance;
             cell_info["is_wall"] = false;
+            cell_info["destroyed"] = false;
+            cell_info["position_in_grid"] = Vector2(x, y);
             grid_occupancy[cell] = cell_info;
         }
     }
     update_z_index();
     if (last_active_state.size() > 0) {
+        toggle_modes(last_active_state);
+    }
+    return true;
+}*/
+
+bool GridManager::move_building(Node2D* instance, Vector2 new_top_left_cell, int building_size) {
+    if (!can_place_building(new_top_left_cell, building_size)) {
+        return false;
+    }
+    Array keys_to_remove;
+    bool is_wall = false;
+    bool found = false;
+    // Get occupancy info and determine if the instance is a wall
+    for (const Variant &key : grid_occupancy.keys()) {
+        Dictionary cell_info = grid_occupancy[key];
+        if (cell_info.has("obj") && Object::cast_to<Node2D>(cell_info["obj"]) == instance) {
+            keys_to_remove.append(key);
+            if (!found && cell_info.has("is_wall")) {
+                is_wall = bool(cell_info["is_wall"]);
+                found = true;
+            }
+        }
+    }
+    for (const Variant& key : keys_to_remove) {
+        grid_occupancy.erase(key);
+    }
+    Vector2 center_cell = new_top_left_cell + Vector2(building_size / 2.0, building_size / 2.0);
+    Vector2 building_center = grid_to_screen(center_cell);
+    instance->set_position(building_center);
+    instance->set_z_index(0);
+    for (int x = 0; x < building_size; x++) {
+        for (int y = 0; y < building_size; y++) {
+            Vector2 cell = new_top_left_cell + Vector2(x, y);
+            Dictionary cell_info;
+            cell_info["obj"] = instance;
+            cell_info["is_wall"] = is_wall;
+            cell_info["destroyed"] = false;
+            cell_info["position_in_grid"] = Vector2(x, y);
+            grid_occupancy[cell] = cell_info;
+        }
+    }
+    update_z_index();
+    if (!is_wall && last_active_state.size() > 0) {
         toggle_modes(last_active_state);
     }
     return true;

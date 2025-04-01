@@ -2,6 +2,7 @@
 #include "core/object/class_db.h"
 #include "core/math/math_funcs.h"
 #include "core/os/os.h"
+#include <cmath> // for fabsf and FLT_MAX
 
 void TroopBrain::_bind_methods() {
     ClassDB::bind_method(D_METHOD("initialize", "troop_unit", "grid_manager"), &TroopBrain::initialize);
@@ -58,13 +59,30 @@ void TroopBrain::update_target() {
         bool is_wall = obj.has("is_wall") ? bool(obj["is_wall"]) : false;
         //print_line(vformat("update_target: cell: (%f, %f) is_wall: %s", cell.x, cell.y, is_wall ? "true" : "false"));
         if (!is_wall) {
-            Vector2 cell_center = grid_manager->grid_to_screen(cell + Vector2(0.5, 0.5));
-            float d = troop_unit->get_global_position().distance_to(cell_center);
-            // Nur setzen, wenn der "obj"-Wert gültig ist:
+            // If a building size is provided, use it. Otherwise assume size = 1.
+            int b_size = obj.has("size") ? int(obj["size"]) : 1;
+            Vector2 offset = Vector2(b_size * 0.5f, b_size * 0.5f);
+            Vector2 center = grid_manager->grid_to_screen(cell + offset);
+            
+            // Calculate the building border point along the line from its center to troop position.
+            Vector2 diff = troop_unit->get_global_position() - center;
+            if (diff == Vector2()) {
+                // Avoid divide-by-zero; choose center.
+                diff = Vector2(1,0);
+            }
+            Vector2 direction = diff.normalized();
+            float hx = b_size * 0.5f;
+            float hy = b_size * 0.5f;
+            float tx = fabsf(direction.x) > 0.0001f ? hx / fabsf(direction.x) : FLT_MAX;
+            float ty = fabsf(direction.y) > 0.0001f ? hy / fabsf(direction.y) : FLT_MAX;
+            float t = MIN(tx, ty);
+            Vector2 target_point = center + direction * t;
+            
+            float d = troop_unit->get_global_position().distance_to(target_point);
             Node2D *potential_target = Object::cast_to<Node2D>(obj["obj"]);
             if (potential_target && d < best_dist) {
                 best_dist = d;
-                attack_target_point = cell_center;
+                attack_target_point = target_point;
                 attack_target = potential_target;
                 //print_line("update_target: Found non-wall target.");
             }
@@ -79,12 +97,31 @@ void TroopBrain::update_target() {
             Dictionary obj = occupancy[cell];
             bool is_wall = obj.has("is_wall") ? bool(obj["is_wall"]) : false;
             if (is_wall) {
-                Vector2 cell_center = grid_manager->grid_to_screen(cell + Vector2(0.5, 0.5));
-                float d = troop_unit->get_global_position().distance_to(cell_center);
+                int b_size = obj.has("size") ? int(obj["size"]) : 1;
+                Vector2 offset = Vector2(b_size * 0.5f, b_size * 0.5f);
+                Vector2 center = grid_manager->grid_to_screen(cell + offset);
+                
+                Vector2 diff = troop_unit->get_global_position() - center;
+                if (diff == Vector2()) {
+                    diff = Vector2(1,0);
+                }
+                Vector2 direction = diff.normalized();
+                float hx = b_size * 0.5f;
+                float hy = b_size * 0.5f;
+                float tx = fabsf(direction.x) > 0.0001f ? hx / fabsf(direction.x) : FLT_MAX;
+                float ty = fabsf(direction.y) > 0.0001f ? hy / fabsf(direction.y) : FLT_MAX;
+                float t = MIN(tx, ty);
+
+                float cell_adjustment = 1.0f; // adjust this constant if needed
+                float t_adjusted = (t > cell_adjustment) ? (t - cell_adjustment) : t;
+
+                Vector2 target_point = center + direction * t_adjusted;
+                
+                float d = troop_unit->get_global_position().distance_to(target_point);
                 Node2D *potential_target = Object::cast_to<Node2D>(obj["obj"]);
                 if (potential_target && d < best_dist) {
                     best_dist = d;
-                    attack_target_point = cell_center;
+                    attack_target_point = target_point;
                     attack_target = potential_target;
                     //print_line("update_target: Found wall target.");
                 }
